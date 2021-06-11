@@ -1,17 +1,13 @@
-var VERSION = 'v1';
+var VERSION = 'v3';
 
 // 缓存
 self.addEventListener('install', function(event) {
     event.waitUntil(
-        caches.open(VERSION)
-        .then(function(cache) {
+        caches.open(VERSION).then(function(cache) {
             return cache.addAll([
-        './index.html',
-        './img.jpg'
-        ]);
-        })
-        .then(()=>{
-            self.skipWaiting();
+                './',
+                './index.html'
+              ]);
         })
     );
 });
@@ -35,18 +31,81 @@ self.addEventListener('activate', function(event) {
 // 捕获请求并返回缓存数据
 self.addEventListener('fetch', function(event) {
 
+
     event.respondWith(
+        /*
         fetch(event.request)
         .then(response => {
-            let cloneRes = response.clone();
-            caches.open(VERSION).then(cache => {
-                cache.put(event.request, cloneRes);
-            });
-            return responseh;
+            post({ message: `response.ok=${response.ok}` })
+            if (response.ok) {
+                let cloneRes = response.clone();
+                caches.open(VERSION).then(cache => {
+                    cache.put(event.request, cloneRes);
+                });
+                return response
+            }
+            else {
+                return caches.match(event.request);
+            }
+        })
+        */
+
+        caches.match(event.request).then(res => {
+            
+            fetch(event.request)
+                .then(response => {
+                    post({ message: `response.ok=${response.ok}` })
+                    if (response.ok) {
+                        let cloneRes = response.clone();
+                        caches.open(VERSION).then(cache => {
+                            cache.put(event.request, cloneRes);
+                        });
+                        return response
+                    }
+                })
+            return res;
         })
         .catch(err => {
-            return caches.match(event.request);
+
+            return fetch(event.request)
+                .then(response => {
+                    post({ message: `response.ok=${response.ok}` })
+                    if (response.ok) {
+                        let cloneRes = response.clone();
+                        caches.open(VERSION).then(cache => {
+                            cache.put(event.request, cloneRes);
+                        });
+                        return response
+                    }
+                })
         })
     )
 
+
 });
+
+var port;
+
+function post(msgObj) {
+    if (port && port.postMessage) {
+        port.postMessage(msgObj);
+    }
+}
+
+
+self.addEventListener('message', function(event) {
+    var data = event.data;
+    if (data.command == "twoWayCommunication") {
+        if (!port) {
+            event.ports[0].postMessage({
+                "message": "Hi, Page"
+            });
+        }
+        port = event.ports[0];
+    }
+});
+
+
+setTimeout(() => {
+    post({ message: "aaa" })
+}, 5000)
