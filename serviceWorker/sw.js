@@ -50,36 +50,41 @@ self.addEventListener('fetch', function(event) {
         })
         */
 
-        caches.match(event.request).then(res => {
-            
+        caches.match(event.request).then(response => {
+                    if (response.ok) {
+                        getFetch()
+                        return response;
+                    }
+                    else {
+                        return getFetch();
+                    }
+                })
+                .catch(err => {
+                    return getFetch();
+                })
+    )
+    
+    function getFetch() {
+        return new Promise((resolve, reject) => {
             fetch(event.request)
                 .then(response => {
-                    post({ message: `response.ok=${response.ok}` })
                     if (response.ok) {
                         let cloneRes = response.clone();
                         caches.open(VERSION).then(cache => {
                             cache.put(event.request, cloneRes);
                         });
-                        return response
+                        resolve(response);
+                    }
+                    else {
+                        reject();
                     }
                 })
-            return res;
+                .catch(err=>{
+                    reject();
+                })
         })
-        .catch(err => {
+    }
 
-            return fetch(event.request)
-                .then(response => {
-                    post({ message: `response.ok=${response.ok}` })
-                    if (response.ok) {
-                        let cloneRes = response.clone();
-                        caches.open(VERSION).then(cache => {
-                            cache.put(event.request, cloneRes);
-                        });
-                        return response
-                    }
-                })
-        })
-    )
 
 
 });
